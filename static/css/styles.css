@@ -40,6 +40,9 @@ ul.mainmenu li a:hover {
 
 div.content {
 	margin: 10px;
+	display: flex;
+	flex-direction: column;
+    align-items: center;
 }
 form {
     margin-left: auto;
@@ -58,4 +61,12 @@ form {
 .form_btn{
   background-color: #f6f6f6; /*Цвет текстового поля*/
   border-radius: 10px 10px 10px 10px; /*Закругляем уголки*/
+}
+
+.metrics {
+    width: 300px;
+}
+
+.metrics__text {
+    font-size: 18px;
 }

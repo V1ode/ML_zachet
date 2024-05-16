@@ -2,5 +2,18 @@
  
 {% block content %}
 {{ super() }}
-<p>Логистическая регрессия для расчета стоимости жилья
+<form action="/p_LogR" method="POST">
+    <p><input type="text" class="form_text" name="list1"> Рейтинг вина</p>
+    <p><input name="list2" class="form_text" type="text"> Цена вина</p>
+    <input type="submit" class="form_btn" value="Узнать страну производитель">
+    <h1>{{class_model}}</h1>
+</form>
+
+<div class="metrics">
+    <p class="metrics__text">
+        Оценка качества accuracy: {{accuracy_score}}
+    </p>
+</div>
+
+
 {% endblock %}
