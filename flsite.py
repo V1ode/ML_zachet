@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import pandas as pd
 import math
-from flask import Flask, render_template, url_for, request
+from flask import Flask, render_template, url_for, request, jsonify
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 
@@ -27,6 +27,18 @@ classify_X = wine_data.drop("Страна", axis=1)
 classify_Y = wine_data["Страна"]
 classify_transform_Y = label_encoder.fit_transform(classify_Y)
 
+with open('model/KNN', 'rb') as pkl:
+    model_knn = pickle.load(pkl)
+
+with open('model/LogR', 'rb') as pkl:
+    model_LogR = pickle.load(pkl)
+
+with open('model/LinR', 'rb') as pkl:
+    model_LinR = pickle.load(pkl)
+
+with open('model/BT', 'rb') as pkl:
+    model_BT = pickle.load(pkl)
+
 
 @app.route("/")
 def index():
@@ -36,9 +48,6 @@ def index():
 
 @app.route("/p_knn", methods=['POST', 'GET'])
 def f_lab1():
-    with open('model/KNN', 'rb') as pkl:
-        model_knn = pickle.load(pkl)
-
     if request.method == 'GET':
         return render_template('lab1.html', title="Метод k ближайших соседей (KNN)", menu=menu, class_model='')
     if request.method == 'POST':
@@ -54,8 +63,6 @@ def f_lab1():
 @app.route("/p_LogR", methods=['POST', 'GET'])
 def f_lab2():
     label_encoder.fit_transform(classify_Y)
-    with open('model/LogR', 'rb') as pkl:
-        model_LogR = pickle.load(pkl)
 
     if request.method == 'GET':
         return render_template('lab2.html', title="Логистическая регрессия", menu=menu, class_model='')
@@ -73,8 +80,6 @@ def f_lab2():
 @app.route("/p_LinR", methods=['POST', 'GET'])
 def f_lab3():
     label_encoder.fit_transform(linear_X["Пол"])
-    with open('model/LinR', 'rb') as pkl:
-        model_LinR = pickle.load(pkl)
 
     if request.method == 'GET':
         return render_template('lab3.html', title="Линейная регрессия", menu=menu, class_model='')
@@ -98,9 +103,6 @@ def f_lab3():
 
 @app.route("/p_BT", methods=['POST', 'GET'])
 def f_lab4():
-    with open('model/BT', 'rb') as pkl:
-        model_BT = pickle.load(pkl)
-
     if request.method == 'GET':
         return render_template('lab4.html', title="Дерево решений", menu=menu, class_model='')
     if request.method == 'POST':
@@ -112,6 +114,47 @@ def f_lab4():
                                class_model="Это: " + pred[0], accuracy_score=ac_score)
 
     pkl.close()
+
+
+@app.route('/api_knn', methods=['get'])
+def api_knn():
+    request_data = request.get_json()
+    X_new = np.array([[float(request_data['rating']),
+                       float(request_data['cost'])]])
+    pred = model_knn.predict(X_new)
+
+    return jsonify(country_producer=pred[0])
+
+@app.route('/api_LogR', methods=['get'])
+def api_LogR():
+    request_data = request.get_json()
+    X_new = np.array([[float(request_data['rating']),
+                       float(request_data['cost'])]])
+    pred = model_LogR.predict(X_new)
+
+    return jsonify(country_producer=label_encoder.classes_[pred[0]])
+
+@app.route('/api_LinR', methods=['get'])
+def api_LinR():
+    label_encoder.fit_transform(linear_X["Пол"])
+
+    request_data = request.get_json()
+    X_new = np.array([[label_encoder.fit_transform([request_data['sex']])[0],
+                       float(request_data['weight']),
+                       float(request_data['height'])]])
+    pred = model_LinR.predict(X_new)
+
+    return jsonify(shoe_size=round(pred[0][0]))
+
+@app.route('/api_BT', methods=['get'])
+def api_BT():
+    request_data = request.get_json()
+    X_new = np.array([[float(request_data['rating']),
+                       float(request_data['cost'])]])
+
+    pred = model_BT.predict(X_new)
+
+    return jsonify(country_producer=pred[0])
 
 
 if __name__ == "__main__":
