@@ -6,19 +6,23 @@ import math
 from flask import Flask, render_template, url_for, request, jsonify
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.model_selection import train_test_split
+from model.neuronFit import OurNeuralNetwork
 
 app = Flask(__name__)
 
 menu = [{"name": "Лаба 1", "url": "p_knn"},
         {"name": "Лаба 2", "url": "p_LogR"},
         {"name": "Лаба 3", "url": "p_LinR"},
-        {"name": "Лаба 4", "url": "p_BT"}]
+        {"name": "Лаба 4", "url": "p_BT"},
+        {"name": "Лаба 13", "url": "p_neuron"}]
 
 label_encoder=LabelEncoder()
 iris_df=pd.read_csv("model/IRIS.csv")
 X=iris_df.drop(["species"],axis=1)
 Y=iris_df["species"]
 feet_data = pd.read_excel("model/Feet.xlsx")
+neuron_df = feet_data.copy(deep=True)
 linear_X = feet_data.drop("Размер обуви", axis=1).drop("Номер", axis=1)
 linear_X["Пол"] = label_encoder.fit_transform(linear_X["Пол"])
 linear_Y = feet_data["Размер обуви"]
@@ -26,6 +30,20 @@ wine_data = pd.read_excel("model/WineSet.xlsx")
 classify_X = wine_data.drop("Страна", axis=1)
 classify_Y = wine_data["Страна"]
 classify_transform_Y = label_encoder.fit_transform(classify_Y)
+
+# Подгружаем данные для нейронки и обучаем ее
+all_y_trues =  label_encoder.fit_transform(neuron_df["Пол"])
+neuron_data = neuron_df.drop(["Пол"], axis=1).drop(["Номер"], axis=1)
+neuron_data = np.array(neuron_data)
+# neuron_train_x, neuron_train_y, neuron_test_x, neuron_test_y = neuron_data.train_test_split(neuron_data, all_y_trues,test_size=0.3,random_state=3)
+network = OurNeuralNetwork()
+network.train(neuron_data, all_y_trues)
+
+preds = []
+for x in neuron_data:
+    y = network.feedforward(x)
+    preds.append(round(y))
+
 
 with open('model/KNN', 'rb') as pkl:
     model_knn = pickle.load(pkl)
@@ -38,7 +56,6 @@ with open('model/LinR', 'rb') as pkl:
 
 with open('model/BT', 'rb') as pkl:
     model_BT = pickle.load(pkl)
-
 
 @app.route("/")
 def index():
@@ -116,6 +133,22 @@ def f_lab4():
     pkl.close()
 
 
+@app.route("/p_neuron", methods=['POST', 'GET'])
+def f_lab13():
+    if request.method == 'GET':
+        return render_template('lab13.html', title="Нейронная сеть", menu=menu, class_model='')
+    if request.method == 'POST':
+        X_new = np.array([float(request.form['list1']),
+                           float(request.form['list2']),
+                           float(request.form['list3'])])
+
+        pred = network.feedforward(X_new)
+
+        ac_score = f"{math.ceil(accuracy_score(preds, all_y_trues)*100)}%"
+        return render_template('lab13.html', title="Нейронная сеть", menu=menu,
+                               class_model=pred, accuracy_score=ac_score)
+
+
 @app.route('/api_knn', methods=['get'])
 def api_knn():
     request_data = request.get_json()
@@ -153,6 +186,17 @@ def api_BT():
                        float(request_data['cost'])]])
 
     pred = model_BT.predict(X_new)
+
+    return jsonify(country_producer=pred[0])
+
+@app.route('/api_neuron', methods=['get'])
+def api_neuron():
+    request_data = request.get_json()
+    X_new = np.array([[label_encoder.fit_transform(int(request_data['weight'])),
+                       label_encoder.fit_transform(int(request_data['height'])),
+                       label_encoder.fit_transform(int(request_data['shoe_size']))]])
+
+    pred = network.feedforward(X_new)
 
     return jsonify(country_producer=pred[0])
 
