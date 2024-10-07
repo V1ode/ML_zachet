@@ -158,6 +158,7 @@ def api_knn():
 
     return jsonify(country_producer=pred[0])
 
+
 @app.route('/api_LogR', methods=['get'])
 def api_LogR():
     request_data = request.get_json()
@@ -166,6 +167,7 @@ def api_LogR():
     pred = model_LogR.predict(X_new)
 
     return jsonify(country_producer=label_encoder.classes_[pred[0]])
+
 
 @app.route('/api_LinR', methods=['get'])
 def api_LinR():
@@ -179,6 +181,7 @@ def api_LinR():
 
     return jsonify(shoe_size=round(pred[0][0]))
 
+
 @app.route('/api_BT', methods=['get'])
 def api_BT():
     request_data = request.get_json()
@@ -189,7 +192,8 @@ def api_BT():
 
     return jsonify(country_producer=pred[0])
 
-@app.route('/api_neuron', methods=['get'])
+
+@app.route('/api_LogNeuron', methods=['get'])
 def api_neuron():
     request_data = request.get_json()
     X_new = np.array([[label_encoder.fit_transform(int(request_data['weight'])),
@@ -199,6 +203,18 @@ def api_neuron():
     pred = network.feedforward(X_new)
 
     return jsonify(country_producer=pred[0])
+
+
+# @app.route('/api_LinNeuron', methods=['get'])
+# def api_neuron():
+#     request_data = request.get_json()
+#     X_new = np.array([[label_encoder.fit_transform(int(request_data['weight'])),
+#                        label_encoder.fit_transform(int(request_data['height'])),
+#                        label_encoder.fit_transform(int(request_data['shoe_size']))]])
+#
+#     pred = network.feedforward(X_new)
+#
+#     return jsonify(country_producer=pred[0])
 
 
 if __name__ == "__main__":
