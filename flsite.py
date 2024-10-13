@@ -4,10 +4,12 @@ import numpy as np
 import pandas as pd
 import math
 from flask import Flask, render_template, url_for, request, jsonify
+from keras.src.saving import load_model
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
 from model.neuronFit import OurNeuralNetwork
+
 
 app = Flask(__name__)
 
@@ -15,7 +17,7 @@ menu = [{"name": "Лаба 1", "url": "p_knn"},
         {"name": "Лаба 2", "url": "p_LogR"},
         {"name": "Лаба 3", "url": "p_LinR"},
         {"name": "Лаба 4", "url": "p_BT"},
-        {"name": "Лаба 13", "url": "p_neuron"}]
+        {"name": "Лаба 13", "url": "p_ClNeuron"}]
 
 label_encoder=LabelEncoder()
 iris_df=pd.read_csv("model/IRIS.csv")
@@ -31,17 +33,20 @@ classify_X = wine_data.drop("Страна", axis=1)
 classify_Y = wine_data["Страна"]
 classify_transform_Y = label_encoder.fit_transform(classify_Y)
 
-# Подгружаем данные для нейронки и обучаем ее
+# Подгружаем данные для нейронки классификации и обучаем ее
 all_y_trues =  label_encoder.fit_transform(neuron_df["Пол"])
 neuron_data = neuron_df.drop(["Пол"], axis=1).drop(["Номер"], axis=1)
 neuron_data = np.array(neuron_data)
 # neuron_train_x, neuron_train_y, neuron_test_x, neuron_test_y = neuron_data.train_test_split(neuron_data, all_y_trues,test_size=0.3,random_state=3)
-network = OurNeuralNetwork()
-network.train(neuron_data, all_y_trues)
+ClNetwork = OurNeuralNetwork()
+ClNetwork.train(neuron_data, all_y_trues)
+
+# Подгружаем нейронку регрессии
+RegNetwork = load_model("model/RegNeuron.h5")
 
 preds = []
 for x in neuron_data:
-    y = network.feedforward(x)
+    y = ClNetwork.feedforward(x)
     preds.append(round(y))
 
 
@@ -133,16 +138,16 @@ def f_lab4():
     pkl.close()
 
 
-@app.route("/p_neuron", methods=['POST', 'GET'])
+@app.route("/p_ClNeuron", methods=['POST', 'GET'])
 def f_lab13():
     if request.method == 'GET':
         return render_template('lab13.html', title="Нейронная сеть", menu=menu, class_model='')
     if request.method == 'POST':
-        X_new = np.array([float(request.form['list1']),
-                           float(request.form['list2']),
-                           float(request.form['list3'])])
+        X_new = np.array([int(request.form['list1']),
+                           int(request.form['list2']),
+                           int(request.form['list3'])])
 
-        pred = network.feedforward(X_new)
+        pred = ClNetwork.feedforward(X_new)
 
         ac_score = f"{math.ceil(accuracy_score(preds, all_y_trues)*100)}%"
         return render_template('lab13.html', title="Нейронная сеть", menu=menu,
@@ -193,28 +198,28 @@ def api_BT():
     return jsonify(country_producer=pred[0])
 
 
-@app.route('/api_LogNeuron', methods=['get'])
-def api_neuron():
+@app.route('/api_ClNeuron', methods=['get'])
+def api_ClNeuron():
     request_data = request.get_json()
-    X_new = np.array([[label_encoder.fit_transform(int(request_data['weight'])),
-                       label_encoder.fit_transform(int(request_data['height'])),
-                       label_encoder.fit_transform(int(request_data['shoe_size']))]])
+    X_new = np.array([[float(request_data['weight']),
+                       float(request_data['height']),
+                       float(request_data['shoe_size'])]])
 
-    pred = network.feedforward(X_new)
+    pred = ClNetwork.feedforward(X_new)
 
-    return jsonify(country_producer=pred[0])
+    return jsonify(sex=pred[0])
 
 
-# @app.route('/api_LinNeuron', methods=['get'])
-# def api_neuron():
-#     request_data = request.get_json()
-#     X_new = np.array([[label_encoder.fit_transform(int(request_data['weight'])),
-#                        label_encoder.fit_transform(int(request_data['height'])),
-#                        label_encoder.fit_transform(int(request_data['shoe_size']))]])
-#
-#     pred = network.feedforward(X_new)
-#
-#     return jsonify(country_producer=pred[0])
+@app.route('/api_RegNeuron', methods=['get'])
+def api_RegNeuron():
+    request_data = request.get_json()
+    X_new = np.array([[(request_data['weight']),
+                       (request_data['height']),
+                       label_encoder.fit_transform(request_data['sex'])]])
+
+    pred = RegNetwork.feedforward(X_new)
+
+    return jsonify(shoe_size=pred[0])
 
 
 if __name__ == "__main__":
