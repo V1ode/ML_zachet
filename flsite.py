@@ -9,6 +9,9 @@ from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
 from model.neuronFit import OurNeuralNetwork
+from model.imgNeurFit import ClothesClasses
+import PIL
+from tensorflow.keras.preprocessing import image
 
 
 app = Flask(__name__)
@@ -17,7 +20,8 @@ menu = [{"name": "Лаба 1", "url": "p_knn"},
         {"name": "Лаба 2", "url": "p_LogR"},
         {"name": "Лаба 3", "url": "p_LinR"},
         {"name": "Лаба 4", "url": "p_BT"},
-        {"name": "Лаба 13", "url": "p_ClNeuron"}]
+        {"name": "Лаба 13", "url": "p_ClNeuron"},
+        {"name": "Лаба 18", "url": "p_ImgClNeur"}]
 
 label_encoder=LabelEncoder()
 iris_df=pd.read_csv("model/IRIS.csv")
@@ -43,6 +47,9 @@ ClNetwork.train(neuron_data, all_y_trues)
 
 # Подгружаем нейронку регрессии
 RegNetwork = load_model("model/RegNeuron.h5")
+
+# Подгружаем нейронку для классификации картинок
+ImgClNetwork = load_model("model/ImgClNetwork.h5")
 
 preds = []
 for x in neuron_data:
@@ -152,6 +159,24 @@ def f_lab13():
         ac_score = f"{math.ceil(accuracy_score(preds, all_y_trues)*100)}%"
         return render_template('lab13.html', title="Нейронная сеть", menu=menu,
                                class_model=pred, accuracy_score=ac_score)
+
+
+@app.route("/p_ImgClNeur", methods=['POST', 'GET'])
+def f_lab18():
+    if request.method == 'GET':
+        return render_template('lab18.html', title="Нейронная сеть", menu=menu, class_model='')
+    if request.method == 'POST':
+        img_path = request.form['img']
+        console.log(img_path)
+        img = image.load_img(img_path, target_size=(28, 28), color_mode="grayscale")
+        x = image.img_to_array(img)
+        x = x.reshape(1, 784)
+        pred = ImgClNetwork.predict(x)
+        pred = np.argmax(prediction)
+        #
+        # ac_score = f"{math.ceil(accuracy_score(preds, all_y_trues)*100)}%"
+        return render_template('lab13.html', title="Нейронная сеть", menu=menu,
+                               class_model=ClothesClasses[pred], accuracy_score=ac_score)
 
 
 @app.route('/api_knn', methods=['get'])

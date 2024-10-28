@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+ 
+{% block content %}
+{{ super() }}
+<form action="/p_ImgClNeur" method="POST">
+    <p><input type="file" name="img"> Ваша картинка одежды или обуви </p>
+    <input type="submit" class="form_btn" value="Узнать вид">
+    <h1>На картинке <BR><BR>  {{class_model}} </h1>
+</form>
+
+<div class="metrics">
+    <p class="metrics__text">
+        Оценка качества accuracy: {{accuracy_score}}
+    </p>
+</div>
+
+
+{% endblock %}
