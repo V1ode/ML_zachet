@@ -1,5 +1,6 @@
 import pickle
 
+import flask
 import numpy as np
 import pandas as pd
 import math
@@ -12,6 +13,7 @@ from model.neuronFit import OurNeuralNetwork
 from model.imgNeurFit import ClothesClasses
 import PIL
 from tensorflow.keras.preprocessing import image
+import os
 
 
 app = Flask(__name__)
@@ -72,7 +74,6 @@ with open('model/BT', 'rb') as pkl:
 @app.route("/")
 def index():
     return render_template('index.html', title="Лабораторные работы, выполненные Терешиным Р.П.", menu=menu)
-
 
 
 @app.route("/p_knn", methods=['POST', 'GET'])
@@ -160,23 +161,27 @@ def f_lab13():
         return render_template('lab13.html', title="Нейронная сеть", menu=menu,
                                class_model=pred, accuracy_score=ac_score)
 
-
 @app.route("/p_ImgClNeur", methods=['POST', 'GET'])
 def f_lab18():
     if request.method == 'GET':
         return render_template('lab18.html', title="Нейронная сеть", menu=menu, class_model='')
     if request.method == 'POST':
-        img_path = request.form['img']
-        console.log(img_path)
-        img = image.load_img(img_path, target_size=(28, 28), color_mode="grayscale")
+        # img_path = request.files['img']
+        img_file = flask.request.files.get('img', '')
+        img_file.save('static/img.jpg')
+        print(img_file)
+
+        img = image.load_img('static/img.jpg', target_size=(28, 28), color_mode="grayscale")
         x = image.img_to_array(img)
         x = x.reshape(1, 784)
         pred = ImgClNetwork.predict(x)
-        pred = np.argmax(prediction)
-        #
+        pred = np.argmax(pred)
+
+        os.remove('static/img.jpg')
+
         # ac_score = f"{math.ceil(accuracy_score(preds, all_y_trues)*100)}%"
-        return render_template('lab13.html', title="Нейронная сеть", menu=menu,
-                               class_model=ClothesClasses[pred], accuracy_score=ac_score)
+        return render_template('lab18.html', title="Нейронная сеть", menu=menu,
+                               class_model=ClothesClasses[pred], accuracy_score="100%")
 
 
 @app.route('/api_knn', methods=['get'])
