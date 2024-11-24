@@ -23,7 +23,8 @@ menu = [{"name": "Лаба 1", "url": "p_knn"},
         {"name": "Лаба 3", "url": "p_LinR"},
         {"name": "Лаба 4", "url": "p_BT"},
         {"name": "Лаба 13", "url": "p_ClNeuron"},
-        {"name": "Лаба 18", "url": "p_ImgClNeur"}]
+        {"name": "Лаба 18", "url": "p_ImgClNeur"},
+        {"name": "Курсовая", "url": "p_ImgMinecraft"}]
 
 label_encoder=LabelEncoder()
 iris_df=pd.read_csv("model/IRIS.csv")
@@ -166,10 +167,8 @@ def f_lab18():
     if request.method == 'GET':
         return render_template('lab18.html', title="Нейронная сеть", menu=menu, class_model='')
     if request.method == 'POST':
-        # img_path = request.files['img']
         img_file = flask.request.files.get('img', '')
         img_file.save('static/img.jpg')
-        print(img_file)
 
         img = image.load_img('static/img.jpg', target_size=(28, 28), color_mode="grayscale")
         x = image.img_to_array(img)
@@ -182,6 +181,29 @@ def f_lab18():
         # ac_score = f"{math.ceil(accuracy_score(preds, all_y_trues)*100)}%"
         return render_template('lab18.html', title="Нейронная сеть", menu=menu,
                                class_model=ClothesClasses[pred], accuracy_score="100%")
+
+@app.route("/p_ImgMinecraft", methods=['POST', 'GET'])
+def f_ImgMinecraft():
+    if request.method == 'GET':
+        return render_template('Minecraft.html', title="Курсовая", menu=menu, class_model='')
+    if request.method == 'POST':
+        img_file = flask.request.files.get('img', '')
+        img_file.save('static/blank.jpg')
+
+        img = image.load_img('static/blank.jpg', target_size=(28, 28), color_mode="grayscale")
+        x = image.img_to_array(img)
+        x = x.reshape(1, 784)
+
+        if(os.path.exists('static/media/result.jpg')):
+            os.remove('static/media/result.jpg')
+
+        # Генерируем центральный контент картинки в разрешении 16х16 и с пустым бэкграундом
+        generated = ImgClNetwork.predict(x)
+        generated.save('static/media/result.jpg')
+
+        os.remove('static/blank.jpg')
+
+        return render_template('Minecraft.html', title="Курсовая", menu=menu)
 
 
 @app.route('/api_knn', methods=['get'])
