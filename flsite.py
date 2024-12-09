@@ -14,6 +14,8 @@ from model.imgNeurFit import ClothesClasses
 import PIL
 from tensorflow.keras.preprocessing import image
 import os
+import cv2
+import torch
 
 
 app = Flask(__name__)
@@ -24,6 +26,7 @@ menu = [{"name": "Лаба 1", "url": "p_knn"},
         {"name": "Лаба 4", "url": "p_BT"},
         {"name": "Лаба 13", "url": "p_ClNeuron"},
         {"name": "Лаба 18", "url": "p_ImgClNeur"},
+        {"name": "Лаба 19", "url": "p_detection"},
         {"name": "Курсовая", "url": "p_ImgMinecraft"}]
 
 label_encoder=LabelEncoder()
@@ -53,6 +56,9 @@ RegNetwork = load_model("model/RegNeuron.h5")
 
 # Подгружаем нейронку для классификации картинок
 ImgClNetwork = load_model("model/ImgClNetwork.h5")
+
+# Подгружаем нейронку для детектирования
+DetectionModel = torch.hub.load('ultralytics/yolov5', 'yolov5s')
 
 preds = []
 for x in neuron_data:
@@ -181,6 +187,43 @@ def f_lab18():
         # ac_score = f"{math.ceil(accuracy_score(preds, all_y_trues)*100)}%"
         return render_template('lab18.html', title="Нейронная сеть", menu=menu,
                                class_model=ClothesClasses[pred], accuracy_score="100%")
+
+
+@app.route("/p_detection", methods=['POST', 'GET'])
+def f_lab21():
+    if request.method == 'GET':
+        return render_template('lab21.html', title="Детектирование", menu=menu)
+    if request.method == 'POST':
+        img_file = flask.request.files.get('img', '')
+        img_file.save('static/blank_lab21.jpg')
+
+        img = Image.open('static/blank_lab21.jpg')
+        desired_classes = ['handbag', 'car']
+        confidence_threshold = 0.5
+        filtered_results = results.pandas().xyxy[0]
+        filtered_results = filtered_results[
+            (filtered_results['name'].isin(desired_classes)) & (filtered_results['confidence'] >= confidence_threshold)]
+        filtered_image = np.array(image)
+
+        for _, row in filtered_results.iterrows():
+            label = row['name']
+            conf = row['confidence']
+            xmin, ymin, xmax, ymax = row[['xmin', 'ymin', 'xmax', 'ymax']]
+            color = (0, 255, 0)  # Зеленый цвет для рамки
+            cv2.rectangle(filtered_image, (int(xmin), int(ymin)), (int(xmax), int(ymax)), color, 1)
+            cv2.putText(filtered_image, f'{label} {conf:.2f}', (int(xmin), int(ymin) - 10), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.9, color, 2)
+
+        if (os.path.exists('static/media/result_lab21.jpg')):
+            os.remove('static/media/result_lab21.jpg')
+
+
+        filtered_image.save('static/media/result_lab21.jpg')
+
+        os.remove('static/blank_lab21.jpg')
+
+        return render_template('lab21.html', title="Детектирование", menu=menu)
+
 
 @app.route("/p_ImgMinecraft", methods=['POST', 'GET'])
 def f_ImgMinecraft():
